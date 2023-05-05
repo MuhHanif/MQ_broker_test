@@ -56,7 +56,7 @@ def put_message_in_queue(json_config: str, queue_name: str, message: str) -> Non
     Put a message into a RabbitMQ queue.
 
     Args:
-        json_config (str): Config credential file
+        json_config (str): Config credential file.
         queue_name (str): The name of the queue to put the message into.
         message (str): The message to put into the queue.
 
@@ -95,7 +95,7 @@ def consume_single_message(json_config: str, queue_name: str) -> Optional[Dict]:
     Consumes a single message from the specified RabbitMQ queue and returns it as a dictionary.
 
     Args:
-        json_config (str): Config credential file
+        json_config (str): Config credential file.
         queue_name (str): The name of the queue to consume from.
 
     Returns:
@@ -129,3 +129,53 @@ def consume_single_message(json_config: str, queue_name: str) -> Optional[Dict]:
     else:
         connection.close()
         return None
+
+
+def flush_queue(json_config: str, queue_name: str) -> None:
+    """
+    Flushes all messages from a RabbitMQ queue. DO NOT USE THIS IN PRODUCTION!
+
+    Args:
+        json_config (str): Config credential file.
+        queue_name (str): The name of the queue to flush.
+
+    Returns:
+        None
+    """
+    json_config = os.path.join(os.getcwd(), json_config)
+
+    with open(json_config, "r") as conf:
+        config = json.load(conf)
+
+    # Access the CLODUAMQP_URL environment variable and parse it (fallback to localhost)
+    url = os.environ.get(
+        "CLOUDAMQP_URL",
+        config["credential"],
+    )
+    params = pika.URLParameters(url)
+
+    # Set up connection parameters
+    connection = pika.BlockingConnection(params)
+    channel = connection.channel()
+
+    # Declare the queue in case it doesn't exist
+    channel.queue_declare(queue=queue_name)
+
+    # Check if the queue is empty
+    queue_info = channel.queue_declare(queue=queue_name, passive=True)
+    message_count = queue_info.method.message_count
+    if message_count == 0:
+        # If the queue is empty, close the connection and return
+        channel.close()
+        connection.close()
+        return
+
+    else:
+        for x in range(message_count):
+            method_frame, header_frame, body = channel.basic_get(
+                queue=queue_name, auto_ack=True
+            )
+
+    # Close the connection and channel
+    channel.close()
+    connection.close()
