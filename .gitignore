@@ -160,4 +160,8 @@ cython_debug/
 #.idea/
 
 *.json
-audio/
+*.ogg
+*.mp3
+*.wav
+*.srt
+*.vtt
