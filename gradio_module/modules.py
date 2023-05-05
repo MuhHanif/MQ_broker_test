@@ -1,7 +1,7 @@
 import urllib.request
 import os
 import requests
-from typing import Any
+from typing import Any, Optional, Dict
 import pika
 import json
 
@@ -56,9 +56,9 @@ def put_message_in_queue(json_config: str, queue_name: str, message: str) -> Non
     Put a message into a RabbitMQ queue.
 
     Args:
-        json_config: Config credential file
-        queue_name: The name of the queue to put the message into.
-        message: The message to put into the queue.
+        json_config (str): Config credential file
+        queue_name (str): The name of the queue to put the message into.
+        message (str): The message to put into the queue.
 
     Returns:
         None
@@ -88,3 +88,44 @@ def put_message_in_queue(json_config: str, queue_name: str, message: str) -> Non
 
     # Close the connection to RabbitMQ server
     connection.close()
+
+
+def consume_single_message(json_config: str, queue_name: str) -> Optional[Dict]:
+    """
+    Consumes a single message from the specified RabbitMQ queue and returns it as a dictionary.
+
+    Args:
+        json_config (str): Config credential file
+        queue_name (str): The name of the queue to consume from.
+
+    Returns:
+        dict or None: If a message was consumed from the queue, returns the message as a dictionary.
+                      Otherwise, returns None.
+    """
+    json_config = os.path.join(os.getcwd(), json_config)
+
+    with open(json_config, "r") as conf:
+        config = json.load(conf)
+
+    # Access the CLODUAMQP_URL environment variable and parse it (fallback to localhost)
+    url = os.environ.get(
+        "CLOUDAMQP_URL",
+        config["credential"],
+    )
+    params = pika.URLParameters(url)
+
+    # Set up connection parameters
+    connection = pika.BlockingConnection(params)
+    channel = connection.channel()
+    channel.queue_declare(queue=queue_name)
+
+    method_frame, header_frame, body = channel.basic_get(
+        queue=queue_name, auto_ack=True
+    )
+    if method_frame:
+        message_dict = json.loads(body.decode("utf-8"))
+        connection.close()
+        return message_dict
+    else:
+        connection.close()
+        return None
