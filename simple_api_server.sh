@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m http.server 6543
+python3 dummy_fileserver.py
