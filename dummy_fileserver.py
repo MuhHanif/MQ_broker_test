@@ -33,7 +33,7 @@ async def upload_audio_file_test_upload(file: UploadFile = File(...)) -> dict:
     os.makedirs(upload_folder, exist_ok=True)
 
     # Check if the uploaded file is an audio file
-    valid_extensions = [".mp3", ".wav", ".ogg"]
+    valid_extensions = [".mp3", ".wav"]
     file_extension = os.path.splitext(file.filename)[1].lower()
 
     if file_extension not in valid_extensions:
