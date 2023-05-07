@@ -37,18 +37,31 @@ def upload_file(url: str, file_path: str) -> Any:
 
     Returns:
         The response object returned by the `requests.post` method.
-
-    Raises:
-        requests.exceptions.RequestException: If the request fails for any reason.
-
-    Example Usage:
-        >>> upload_file('http://localhost:5959/file', 'path/to/your/file.txt')
-        <Response [200]>
     """
     with open(file_path, "rb") as f:
         files = {"file": f}
         response = requests.post(url, files=files)
     return response
+
+
+def upload_file_binary(
+    url: str, file_name: str, binary_file: bytes, file_format: str
+) -> str:
+    """
+    Sends a file as multipart/form data to an API endpoint.
+
+    Args:
+        url (str): The URL of the API endpoint.
+        file_name (str): File name of the binary file.
+        binary_file (bytes): The path to the file to be uploaded.
+        file_format (str): File format of the binary file
+
+    Returns:
+        str: The response from the API as a string.
+    """
+    files = {"file": (file_name, binary_file, file_format)}
+    response = requests.post(url, files=files)
+    return (response.text, response.status_code)
 
 
 def put_message_in_queue(json_config: str, queue_name: str, message: str) -> None:
