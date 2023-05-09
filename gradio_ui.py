@@ -93,4 +93,4 @@ gr.Interface(
     outputs=outputs,
     title="Whisper Testing Sequential",
     allow_flagging="never",
-).launch(server_port=9789)
+).launch(server_name="0.0.0.0", server_port=9789)
