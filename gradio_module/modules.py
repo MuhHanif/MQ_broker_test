@@ -4,6 +4,7 @@ import requests
 from typing import Any, Optional, Dict
 import pika
 import json
+import time
 
 
 def download_file(url: str, folder: str) -> None:
@@ -131,17 +132,25 @@ def consume_single_message(json_config: str, queue_name: str) -> Optional[Dict]:
     connection = pika.BlockingConnection(params)
     channel = connection.channel()
     channel.queue_declare(queue=queue_name)
+    # message_count = queue_info.method.message_count
 
-    method_frame, header_frame, body = channel.basic_get(
-        queue=queue_name, auto_ack=True
-    )
-    if method_frame:
-        message_dict = json.loads(body.decode("utf-8"))
-        connection.close()
-        return message_dict
-    else:
-        connection.close()
-        return None
+    while True:
+        method_frame, header_frame, body = channel.basic_get(
+            queue=queue_name, auto_ack=True
+        )
+        if method_frame:
+            return json.loads(body.decode("utf-8"))
+            break
+        else:
+            connection.sleep(1)
+
+    # if method_frame:
+    #     message_dict = json.loads(body.decode("utf-8"))
+    #     connection.close()
+    #     return message_dict
+    # else:
+    #     connection.close()
+    #     return None
 
 
 def flush_queue(json_config: str, queue_name: str) -> None:
