@@ -18,6 +18,8 @@ bucket_url = "https://dummy-bucket.treehaus.dev/audio/"
 
 # config path
 json_config = "conf.json"
+with open(json_config, "r") as conf:
+    config = json.load(conf)
 
 
 # function that executed in the web ui
@@ -25,13 +27,6 @@ def read_binary_file(file) -> str:
     # =============[send both image and message to dummy server]============= #
     with open(json_config, "r") as conf:
         config = json.load(conf)
-
-    # debug tools for clearing queue ensuring sequential operation
-    flush_queue(json_config="conf.json", queue_name=config["queue"])
-
-    # read as binary data for json serialization
-    # with open(file_name, "rb") as f:
-    #     binary_data = f.read()
 
     upload_folder = os.path.join(os.getcwd(), "upload")  # TODO: hoist this!
 
@@ -58,18 +53,6 @@ def read_binary_file(file) -> str:
     else:
         saved_file = file_name
         response = upload_file(url=url, file_path=file_name)
-    # # get file extension and bit of reformating
-    # file_extension = file_name.split(".")[-1]
-    # if file_extension == "mp3":
-    #     file_extension = "mpeg"
-
-    # # upload to dummy file server (replace this part with s3 bucket)
-    # response = upload_file_binary(
-    #     url=url,
-    #     file_name=file_name.split("/")[-1],
-    #     binary_file=binary_data,
-    #     file_format=f"audio/{file_extension}",
-    # )
 
     # dummy payload format, only changing file URI for now
     payload = {
@@ -83,6 +66,7 @@ def read_binary_file(file) -> str:
         "speaker1": "channel1",
         "speaker2": "channel2",
     }
+
     payload["file_uri"] = payload["file_uri"] + saved_file.split("/")[-1]
     # payload = json.dumps(payload)
     # enqueue message indicating that the audio file is uploaded
@@ -91,32 +75,47 @@ def read_binary_file(file) -> str:
         put_message_in_queue(
             json_config="conf.json", queue_name=config["queue"], message=payload
         )
-        output = payload
+        output = response.text
     else:
         output = "upload failed"
 
-    # =============[wait for a response from messaging server]============= #
+    return output  # + str(binary_data)
 
+
+def retrieve_message():
     output_result = consume_single_message(
         json_config="conf.json", queue_name=config["queue_response"]
     )
-    flush_queue(json_config="conf.json", queue_name=config["queue_response"])
 
     response = requests.get(output_result["file_uri"]["conversation"])
 
-    return response.text  # + str(binary_data)
+    return response.text
 
 
-# gradio ui input output
-inputs = gr.inputs.File()
-outputs = gr.outputs.Textbox()
+demo = gr.Blocks()
+with demo:
+    gr.Markdown("# whisper queue demo")
 
+    with gr.Tabs():
+        # upload audio files to queue
+        with gr.TabItem("upload audio"):
+            with gr.Row():
+                # file input
+                input_file = gr.File()
+            with gr.Row():
+                # prompted output if failed or succeed
+                text_output2 = gr.Textbox()
 
-# start interface and executing defined function
-gr.Interface(
-    fn=read_binary_file,
-    inputs=inputs,
-    outputs=outputs,
-    title="Whisper Testing Sequential",
-    allow_flagging="never",
-).launch(server_name="0.0.0.0", server_port=9789)
+            # execute function
+            upload = gr.Button("send to queue")
+
+        # download vtt files from queue
+        with gr.TabItem("download vtt"):
+            with gr.Row():
+                image_output = gr.TextArea()
+            retrieve = gr.Button("retrieve queue")
+
+    upload.click(read_binary_file, inputs=input_file, outputs=[text_output2])
+    retrieve.click(retrieve_message, inputs=None, outputs=image_output)
+
+demo.launch(server_name="0.0.0.0", server_port=9729)
