@@ -83,13 +83,20 @@ def read_binary_file(file) -> str:
 
 
 def retrieve_message():
-    output_result = consume_single_message(
+    queue_count = get_queue_length(
         json_config="conf.json", queue_name=config["queue_response"]
     )
 
-    response = requests.get(output_result["file_uri"]["conversation"])
+    if queue_count > 0:
+        output_result = consume_single_message(
+            json_config="conf.json", queue_name=config["queue_response"]
+        )
 
-    return response.text
+        response = requests.get(output_result["file_uri"]["conversation"]).text
+
+    else:
+        response = "Queue is empty"
+    return response
 
 
 demo = gr.Blocks()

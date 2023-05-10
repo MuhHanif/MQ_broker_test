@@ -201,3 +201,48 @@ def flush_queue(json_config: str, queue_name: str) -> None:
     # Close the connection and channel
     channel.close()
     connection.close()
+
+
+def get_queue_length(json_config: str, queue_name: str) -> int:
+    """
+    Retrieves the length of a RabbitMQ queue.
+
+    Args:
+        json_config (str): Config credential file.
+        queue_name (str): The name of the queue to check.
+
+    Returns:
+        int: The length of the specified queue.
+
+    Raises:
+        pika.exceptions.AMQPError: If there is an error in the RabbitMQ connection or queue declaration.
+    """
+    # Establish connection
+    json_config = os.path.join(os.getcwd(), json_config)
+
+    with open(json_config, "r") as conf:
+        config = json.load(conf)
+
+    # Access the CLODUAMQP_URL environment variable and parse it (fallback to localhost)
+    url = os.environ.get(
+        "CLOUDAMQP_URL",
+        config["credential"],
+    )
+    params = pika.URLParameters(url)
+
+    # Set up connection parameters
+    connection = pika.BlockingConnection(params)
+    channel = connection.channel()
+
+    try:
+        # Declare the queue
+        channel.queue_declare(queue=queue_name, passive=True)
+
+        # Get queue information
+        method_frame = channel.queue_declare(queue=queue_name, passive=True)
+        queue_length = method_frame.method.message_count
+
+        return queue_length
+    finally:
+        # Close connection
+        connection.close()
