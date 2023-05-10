@@ -118,4 +118,4 @@ with demo:
     upload.click(read_binary_file, inputs=input_file, outputs=[text_output2])
     retrieve.click(retrieve_message, inputs=None, outputs=image_output)
 
-demo.launch(server_name="0.0.0.0", server_port=9729)
+demo.launch(server_name="0.0.0.0", server_port=9789)
