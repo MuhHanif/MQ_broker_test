@@ -45,6 +45,23 @@ def upload_file(url: str, file_path: str) -> Any:
     return response
 
 
+def upload_file_to_worker_queue(url: str, file_path: str) -> Any:
+    """
+    Uploads a file to the specified API endpoint URL using the `requests` library.
+
+    Args:
+        url (str): The URL of the API endpoint.
+        file_path (str): The local path to the file that you want to upload.
+
+    Returns:
+        The response object returned by the `requests.post` method.
+    """
+    with open(file_path, "rb") as f:
+        files = {"file": f}
+        response = requests.post(url, files=files)
+        
+    return response
+
 def upload_file_binary(
     url: str, file_name: str, binary_file: bytes, file_format: str
 ) -> str:
